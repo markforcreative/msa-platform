@@ -2,7 +2,7 @@
 
 基于 FastAPI、PostgreSQL、ONNX Runtime、Whisper、BERT、MMSA-FET/OpenFace 和 Ollama 的多模态情感分析与对话后端。
 
-> 当前目录是发布草稿，还不能直接公开发布。第三方许可证、模型下载地址和项目自身许可证仍需确认；请先阅读 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+> 本仓库中由维护者原创的源代码以 GPL-3.0-only 发布；第三方组件沿用各自许可证。运行所需的模型权重、OpenFace 资产、本地共享库、真实数据和 `.env` 不在本次发布范围内；详情见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 架构
 
@@ -41,7 +41,7 @@ FastAPI / AI 推理容器
 - OpenCV 4.9.0
 - MediaPipe 0.10.35
 
-最低 GPU、内存和磁盘要求尚未完成基准测试。正式发布时应分别测试启动峰值、单请求峰值和并发场景。
+最低 GPU、内存和磁盘要求尚未完成基准测试。在给出明确硬件下限前，需要分别测量启动峰值、单请求峰值和并发场景。
 
 ## 前置条件
 
@@ -127,12 +127,21 @@ Compose 创建三个命名卷：
 
 这些卷不会进入 Git。重要数据需要独立备份。
 
-## 发布前待办
+## 许可证与发布范围
 
-- [ ] 选择与第三方依赖兼容的项目许可证
-- [ ] 补充 vendored MMSA-FET fork 的精确上游基线和修改清单；当前已明确其为本地兼容性修改版本
-- [ ] 确认 OpenFace、共享库、ONNX 模型和训练数据的再分发权利
-- [ ] 提供模型/资源下载地址、备用地址和压缩包 SHA-256
+除另有第三方声明外，本项目原创源代码 Copyright (C) 2026 markforcreative，并以 GNU GPL version 3 only（GPL-3.0-only）发布，详见 [LICENSE](LICENSE)。
+
+`MSA_FET/` 是基于上游 `v_0.4.2` 的修改版 vendored 副本，沿用上游 GPL-3.0-or-later；修改内容见 [MSA_FET/MODIFICATIONS.md](MSA_FET/MODIFICATIONS.md)。
+
+本源码仓库不包含 OpenFace 二进制与模型、项目 ONNX 权重、本地共享库、真实上传数据和本地配置。第三方依赖和运行资产仍受各自许可证约束。
+
+## 当前限制与后续工作
+
+- [x] 项目原创源码采用 GPL-3.0-only；第三方组件保留各自许可证
+- [x] 确认 vendored MMSA-FET 基线为 `v_0.4.2`，并记录本地修改
+- [x] 将 OpenFace、共享库、ONNX 模型、训练数据和真实上传文件排除在源码发布之外
+- [ ] 在未来公开 Docker 镜像或资产包之前，单独确认所有运行资产的再分发权利
+- [ ] 提供模型/资源的合法获取地址、备用地址和压缩包 SHA-256
 - [x] 在 Windows、Docker Desktop、WSL2 和 RTX 4070 环境完成 Docker 构建与端到端推理测试（2026-10-10）
 - [ ] 在第二台干净环境完成复现测试
 - [ ] 为公开 Demo 增加令牌认证、资源所有权校验、限流和上传清理策略

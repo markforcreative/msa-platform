@@ -1,3 +1,7 @@
+# Modified for MSA Platform on or before 2026-10-10:
+# add log-F0 extraction and frame alignment.
+# See ../../MODIFICATIONS.md for the upstream baseline and change details.
+
 from email.policy import default
 import inspect
 
