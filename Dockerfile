@@ -35,9 +35,9 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip \
        torch==2.4.0 --index-url https://download.pytorch.org/whl/cu124 \
     && python3 -m pip install --no-cache-dir -r requirements.txt
 
-RUN useradd --create-home --uid 10001 appuser
+RUN useradd --create-home --uid 10001 xinji
 
-COPY --chown=appuser:appuser . /workspace/msa_platform
+COPY --chown=xinji:xinji . /workspace/msa_platform
 
 # 这些大文件不进入 Git；构建前必须按 README 放到指定路径。
 RUN test -f /workspace/msa_platform/lnln_deploy.onnx \
@@ -53,13 +53,20 @@ RUN test -f /workspace/msa_platform/lnln_deploy.onnx \
     && if [ -f libatk-1.0.so.0.23510.1 ]; then ln -sf libatk-1.0.so.0.23510.1 libatk-1.0.so.0; fi \
     && if [ -f libXcomposite.so.1.0.0 ]; then ln -sf libXcomposite.so.1.0.0 libXcomposite.so.1; fi \
     && if [ -f libXdamage.so.1.1.0 ]; then ln -sf libXdamage.so.1.1.0 libXdamage.so.1; fi \
-    && mkdir -p /workspace/msa_platform/uploads /home/appuser/.cache/huggingface \
-    && chown -R appuser:appuser /workspace/msa_platform /home/appuser
+    && ldd /workspace/msa_platform/MSA_FET/exts/OpenFace/FeatureExtraction > /tmp/feature-extraction.ldd \
+    && if grep -q "not found" /tmp/feature-extraction.ldd; then \
+         echo "FeatureExtraction 存在未解析的动态库依赖：" >&2; \
+         cat /tmp/feature-extraction.ldd >&2; \
+         exit 1; \
+       fi \
+    && rm -f /tmp/feature-extraction.ldd \
+    && mkdir -p /workspace/msa_platform/uploads /home/xinji/.cache/huggingface \
+    && chown -R xinji:xinji /workspace/msa_platform /home/xinji
 
-ENV HOME=/home/appuser \
-    HF_HOME=/home/appuser/.cache/huggingface
+ENV HOME=/home/xinji \
+    HF_HOME=/home/xinji/.cache/huggingface
 
-USER appuser
+USER xinji
 
 EXPOSE 8000
 

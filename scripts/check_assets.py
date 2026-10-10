@@ -23,10 +23,23 @@ EXPECTED_SHA256 = {
 }
 
 REQUIRED_LIB_PATTERNS = (
-    "libopencv_core.so.4.1.0",
-    "libopencv_imgproc.so.4.1.0",
-    "libopencv_videoio.so.4.1.0",
+    "libXcomposite.so.1.0.0",
+    "libXdamage.so.1.1.0",
+    "libatk-1.0.so.0.23510.1",
+    "libboost_filesystem.so.1.71.0",
+    "libdc1394.so.22.2.1",
+    "libgdk-x11-2.0.so.0.2400.32",
     "libgtk-x11-2.0.so.0.2400.32",
+    "libopencv_calib3d.so.4.1.0",
+    "libopencv_core.so.4.1.0",
+    "libopencv_features2d.so.4.1.0",
+    "libopencv_flann.so.4.1.0",
+    "libopencv_highgui.so.4.1.0",
+    "libopencv_imgcodecs.so.4.1.0",
+    "libopencv_imgproc.so.4.1.0",
+    "libopencv_objdetect.so.4.1.0",
+    "libopencv_videoio.so.4.1.0",
+    "libtbb.so.2",
 )
 
 
