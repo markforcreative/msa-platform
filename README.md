@@ -105,6 +105,15 @@ FastAPI 文档：
 http://127.0.0.1:8000/docs
 ```
 
+## 会话摘要与删除接口
+
+- 第一轮完整问答落库后，服务端只使用这一轮“用户消息 + 助手回复”向 Ollama 请求一次简短标题，并写入 `sessions.summary`。字段一旦非空，后续对话不会再次生成或覆盖。
+- `GET /users/{user_id}/sessions` 会返回 nullable 的 `summary`，供客户端侧边栏显示。
+- `DELETE /sessions/{session_id}` 会永久删除整段会话和消息，并尽力清理消息所引用的本地上传视频。
+- `DELETE /users/{user_id}` 要求 JSON body 中提供当前密码；验证通过后永久删除账号、全部会话和消息，并尽力清理关联上传视频。
+
+`sessions.summary` 会在服务启动时通过兼容性迁移自动补充。删除操作不可恢复；当前版本仍没有会话令牌和完整资源归属校验，只应在本机开发或受控 Demo 中使用。
+
 停止服务并保留数据：
 
 ```bash

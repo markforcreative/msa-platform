@@ -57,6 +57,7 @@ class MSA_DB:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id VARCHAR(50) PRIMARY KEY,
+                summary VARCHAR(80),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -64,6 +65,11 @@ class MSA_DB:
         # 兼容性升级：若 sessions 表之前存在但没有 user_id 外键，则安全注入
         cur.execute("""
             ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE
+        """)
+
+        # 兼容性升级：为历史会话增加可空的一句话摘要字段
+        cur.execute("""
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS summary VARCHAR(80)
         """)
 
         # 3. 创建消息历史表
@@ -144,7 +150,7 @@ class MSA_DB:
         conn = psycopg2.connect(**self.conn_params)
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(
-            "SELECT session_id, created_at FROM sessions WHERE user_id = %s ORDER BY created_at DESC",
+            "SELECT session_id, summary, created_at FROM sessions WHERE user_id = %s ORDER BY created_at DESC",
             (user_id,)
         )
         sessions = cur.fetchall()
@@ -153,18 +159,126 @@ class MSA_DB:
         return sessions
 
     def delete_session(self, session_id):
-        """硬删除指定会话"""
+        """硬删除指定会话，并返回删除状态及其关联的视频 URL。"""
         conn = psycopg2.connect(**self.conn_params)
         cur = conn.cursor()
         try:
+            cur.execute(
+                "SELECT video_url FROM messages WHERE session_id = %s AND video_url IS NOT NULL",
+                (session_id,)
+            )
+            video_urls = [row[0] for row in cur.fetchall() if row[0]]
+
+            # 显式删除消息，兼容早期数据库中可能尚未补齐级联约束的情况。
             cur.execute("DELETE FROM messages WHERE session_id = %s", (session_id,))
             cur.execute("DELETE FROM sessions WHERE session_id = %s", (session_id,))
+            if cur.rowcount == 0:
+                conn.rollback()
+                return False, []
+
             conn.commit()
-            return True
+            return True, video_urls
         except Exception as e:
             conn.rollback()
             print(f"删除会话失败: {e}")
-            return False
+            return None, []
+        finally:
+            cur.close()
+            conn.close()
+
+    def session_summary_is_empty(self, session_id):
+        """仅当会话存在且尚未生成摘要时返回 True。"""
+        conn = psycopg2.connect(**self.conn_params)
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                """
+                SELECT 1
+                FROM sessions
+                WHERE session_id = %s
+                  AND (summary IS NULL OR BTRIM(summary) = '')
+                """,
+                (session_id,)
+            )
+            return cur.fetchone() is not None
+        finally:
+            cur.close()
+            conn.close()
+
+    def set_session_summary_if_empty(self, session_id, summary):
+        """条件写入摘要；已有非空摘要时永不覆盖。"""
+        conn = psycopg2.connect(**self.conn_params)
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                """
+                UPDATE sessions
+                SET summary = %s
+                WHERE session_id = %s
+                  AND (summary IS NULL OR BTRIM(summary) = '')
+                """,
+                (summary, session_id)
+            )
+            updated = cur.rowcount == 1
+            conn.commit()
+            return updated
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()
+            conn.close()
+
+    def delete_user_account(self, user_id, password):
+        """二次校验密码后永久删除用户，并返回其全部视频 URL。"""
+        conn = psycopg2.connect(**self.conn_params)
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "SELECT password_hash FROM users WHERE user_id = %s FOR UPDATE",
+                (user_id,)
+            )
+            user = cur.fetchone()
+            if user is None:
+                conn.rollback()
+                return "not_found", []
+            if not verify_password(user[0], password):
+                conn.rollback()
+                return "invalid_password", []
+
+            cur.execute(
+                """
+                SELECT m.video_url
+                FROM messages m
+                JOIN sessions s ON s.session_id = m.session_id
+                WHERE s.user_id = %s AND m.video_url IS NOT NULL
+                """,
+                (user_id,)
+            )
+            video_urls = [row[0] for row in cur.fetchall() if row[0]]
+
+            # 显式删除关联记录，兼容早期数据库中可能尚未补齐级联约束的情况。
+            cur.execute(
+                """
+                DELETE FROM messages
+                WHERE session_id IN (
+                    SELECT session_id FROM sessions WHERE user_id = %s
+                )
+                """,
+                (user_id,)
+            )
+            cur.execute("DELETE FROM sessions WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+            if cur.rowcount != 1:
+                conn.rollback()
+                return "not_found", []
+
+            conn.commit()
+            return "deleted", video_urls
+        except Exception as e:
+            conn.rollback()
+            print(f"永久删除账号失败: {e}")
+            return "error", []
         finally:
             cur.close()
             conn.close()
