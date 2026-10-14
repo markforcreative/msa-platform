@@ -4,6 +4,20 @@
 
 > 本仓库中由维护者原创的源代码以 GPL-3.0-only 发布；第三方组件沿用各自许可证。运行所需的模型权重、OpenFace 资产、本地共享库、真实数据和 `.env` 不在本次发布范围内；详情见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
+## 演示
+
+<p align="center">
+  <img
+    src="docs/assets/demo-preview.gif"
+    width="288"
+    alt="MSA Platform 手机端多模态情感分析演示"
+  >
+</p>
+
+<p align="center">
+  手机端通过公网链路调用多模态情感分析服务，完成视频语音识别、情感分析与 AI 回复。
+</p>
+
 ## 架构
 
 ```text
